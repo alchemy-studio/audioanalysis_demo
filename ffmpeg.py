@@ -43,7 +43,7 @@ class FFMPEG(object):
   def concat(audio_paths: List[str], output: str = None)->None:
     if output is None:
       output = 'concated.flac';
-    f = NamedTemporaryFile();
+    f = NamedTemporaryFile(mode='w');
     list_file = f.name;
     for path in audio_paths:
       f.write('file ' + path + '\n');
