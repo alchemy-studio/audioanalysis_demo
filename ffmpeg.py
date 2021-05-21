@@ -11,7 +11,7 @@ class Channel(Enum):
   Left = 1;
   Right = 2;
 
-class AudioProcess(object):
+class FFMPEG(object):
   typical_sampling_frequencies = [8000, 16000,44100];
 
   def __init__(self,):
@@ -99,5 +99,5 @@ class AudioProcess(object):
 
 if __name__ == "__main__":
 
-  ap = AudioProcess();
+  ff = FFMPEG();
 
