@@ -30,7 +30,7 @@ class AudioProcess(object):
       output = splitext(audio_path)[0] + "_trimmed.wav";
     subprocess.run(['ffmpeg', '-i', audio_path, '-ss', start, '-t', length, output]);
 
-  def concat_audio(self, audio_paths: List[str], output: str)->None:
+  def concat_audio(self, audio_paths: List[str], output: str = None)->None:
     if output is None:
       output = 'concated.wav';
     f = NamedTemporaryFile();
@@ -41,4 +41,9 @@ class AudioProcess(object):
     subprocess.run(['ffmpeg', '-f', 'concat', '-i', list_file, '-c', 'copy', output]);
     remove(list_file);
 
+  def split_audio(self, audio_path: str, length: int = 1, output: str = None)->None:
+    if output is None:
+      output = 'splitted%05d.wave';
+    subprocess.run(['ffmpeg', '-i', audio_path, '-f', 'segment', '-segment_time', length, '-c', 'copy', output]);
 
+  def 
