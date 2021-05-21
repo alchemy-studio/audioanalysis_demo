@@ -27,7 +27,7 @@ class FFMPEG(object):
   def resample(audio_path: str, frequency: int = 8000, channels: int = 2, output: str = None)->None:
     if output is None:
       output = splitext(audio_path)[0] + "_" + str(frequency) + "_" + ('mono' if channels == 1 else 'stereo') + ".flac";
-    subprocess.run(['ffmpeg', '-i', audio_path, '-ar', frequency, '-ac', channels, output]);
+    subprocess.run(['ffmpeg', '-i', audio_path, '-ar', str(frequency), '-ac', str(channels), output]);
 
   @staticmethod
   def show_attributes(audio_path: str)->None:
@@ -37,7 +37,7 @@ class FFMPEG(object):
   def slice(audio_path: str, start: int, length: int, output: str = None)->None:
     if output is None:
       output = splitext(audio_path)[0] + "_sliced.flac";
-    subprocess.run(['ffmpeg', '-i', audio_path, '-ss', start, '-t', length, output]);
+    subprocess.run(['ffmpeg', '-i', audio_path, '-ss', str(start), '-t', str(length), output]);
 
   @staticmethod
   def concat(audio_paths: List[str], output: str = None)->None:
@@ -55,7 +55,7 @@ class FFMPEG(object):
   def split(audio_path: str, length: int = 1, output: str = None)->None:
     if output is None:
       output = splitext(audio_path)[0] + '_splitted%05d.flac';
-    subprocess.run(['ffmpeg', '-i', audio_path, '-f', 'segment', '-segment_time', length, '-c', 'copy', output]);
+    subprocess.run(['ffmpeg', '-i', audio_path, '-f', 'segment', '-segment_time', str(length), '-c', 'copy', output]);
 
   @staticmethod
   def switch_channels(audio_path: str, output: str = None)->None:
@@ -99,5 +99,5 @@ class FFMPEG(object):
 
 if __name__ == "__main__":
 
-  ff = FFMPEG();
+  FFMPEG.resample('brahms_lullaby.mp3');
 
