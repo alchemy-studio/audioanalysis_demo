@@ -46,7 +46,7 @@ class FFMPEG(object):
     f = NamedTemporaryFile();
     list_file = f.name;
     for path in audio_paths:
-      list_file.write('file ' + path + '\n');
+      f.write('file ' + path + '\n');
     f.close();
     subprocess.run(['ffmpeg', '-f', 'concat', '-i', list_file, '-c', 'copy', output]);
     remove(list_file);
