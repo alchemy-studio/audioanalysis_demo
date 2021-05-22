@@ -9,6 +9,18 @@ class AudioProcess(object):
   def __init__(self, audio_path = None):
     if audio_path is not None:
       self.load(audio_path);
+  @property
+  def data(self):
+    return self.__data;
+  @property
+  def sample_width(self):
+    return self.__sample_width;
+  @property
+  def channels(self):
+    return self.__channels;
+  @property
+  def frame_rate(self):
+    return self.__frame_rate;
   def load(self, audio_path):
     audiofile = AudioSegment.from_file(audio_path);
     # 1) data
@@ -29,12 +41,15 @@ class AudioProcess(object):
     return data[start*self.__frame_rate:(start+length)*self.__frame_rate,:];
   def split(self, length: int, normalized: bool = False):
     data = self.normalize() if normalized else self.__data;
-    segment_size = length * self.__frame_rate;
+    segment_size = length * self.__frame_rate; # how many samples per slice
     return [data[x:x+segment_size,:] for x in np.arange(0, data.shape[0], segment_size)];
 
 if __name__ == "__main__":
 
   ap = AudioProcess('brahms_lullaby.mp3');
+  print(ap.sample_width);
+  print(ap.channels);
+  print(ap.frame_rate);
   normalized = ap.normalize();
   sliced = ap.slice(2,2);
   splitted = ap.split(1000);
