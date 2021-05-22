@@ -12,7 +12,7 @@ class Channel(Enum):
   Right = 2;
 
 class FFMPEG(object):
-  typical_sampling_frequencies = [8000, 16000,44100];
+  typical_sampling_frequencies = [8000, 16000, 44100];
 
   def __init__(self,):
     pass

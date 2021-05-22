@@ -1,1 +1,3 @@
+pydub
+scipy
 pyAudioAnalysis
