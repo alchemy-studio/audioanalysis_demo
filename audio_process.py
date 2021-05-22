@@ -3,18 +3,13 @@
 from os.path import splitext;
 import numpy as np;
 from pydub import AudioSegment;
-from scipy.io import wavfile;
 
 class AudioProcess(object):
   def __init__(self, audio_path):
-    if splitext(audio_path)[1] not in ['.wav', '.mp3']:
-      raise Exception('currently only support wav and mp3 files!');
-    if splitext(audio_path)[1] == '.wav':
-      self.fs, self.data = wavfile.read(audio_path);
-    elif splitext(audio_path)[1] == '.mp3':
-      audiofile = AudioSegment.from_file(audio_path);
-      self.data = np.array(audiofile.get_array_of_samples());
-      self.fs = audiofile.frame_rate;
+    audiofile = AudioSegment.from_file(audio_path);
+    channel_num = audiofile.channels;
+    self.data = np.reshape(np.array(audiofile.get_array_of_samples()), (-1,channel_num)); # self.data.shape = (sample_num, channel_num)
+    self.fs = audiofile.frame_rate;
 
 if __name__ == "__main__":
 
