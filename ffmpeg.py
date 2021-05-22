@@ -44,12 +44,11 @@ class FFMPEG(object):
     if output is None:
       output = 'concated.flac';
     f = NamedTemporaryFile(mode='w');
-    list_file = f.name;
     for path in audio_paths:
       f.write('file ' + path + '\n');
+    f.seek(0);
+    subprocess.run(['ffmpeg', '-f', 'concat', '-i', f.name, '-c', 'copy', output]);
     f.close();
-    subprocess.run(['ffmpeg', '-f', 'concat', '-i', list_file, '-c', 'copy', output]);
-    remove(list_file);
 
   @staticmethod
   def split(audio_path: str, length: int = 1, output: str = None)->None:
@@ -66,7 +65,7 @@ class FFMPEG(object):
   @staticmethod
   def join_channels(audio_paths: List[str], output: str = None)->None:
     if output is None:
-      output = splitext(audio_path)[0] + '_joined.flac';
+      output = 'joined.flac';
     inputs = list();
     for path in audio_paths:
       inputs.append('-i');
@@ -83,7 +82,6 @@ class FFMPEG(object):
 
   @staticmethod
   def mute_channel(audio_path: str, channel: Channel = Channel.Left, output: str = None)->None:
-    assert channel in ['left', 'right'];
     if output is None:
       output = splitext(audio_path)[0] + "_muted.flac";
     if channel == Channel.Left:
