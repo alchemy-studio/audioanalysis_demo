@@ -14,8 +14,8 @@ class AudioProcess(object):
     # 1) data
     self.__data = np.reshape(np.array(audiofile.get_array_of_samples()), (-1, audiofile.channels)); # self.data.shape = (sample_num, channel_num)
     # 2) attributes
-    self.__sample_width = audiofile.sample_width;
-    self.__channels = audiofile.channels;
+    self.__sample_width = audiofile.sample_width; # how many bytes for one sample
+    self.__channels = audiofile.channels; # how many sound channels (whether it is a stereo audio)
     self.__frame_rate = audiofile.frame_rate; # how many samples per second
     # 3) flag to represent whether a file has loaded
     self.__opened = True;
@@ -27,10 +27,14 @@ class AudioProcess(object):
   def slice(self, start: int, length: int, normalized: bool = False):
     data = self.normalize() if normalized else self.__data;
     return data[start*self.__frame_rate:(start+length)*self.__frame_rate,:];
-  
+  def split(self, length: int, normalized: bool = False):
+    data = self.normalize() if normalized else self.__data;
+    segment_size = length * self.__frame_rate;
+    return [data[x:x+segment_size,:] for x in np.arange(0, data.shape[0], segment_size)];
 
 if __name__ == "__main__":
 
   ap = AudioProcess('brahms_lullaby.mp3');
   normalized = ap.normalize();
   sliced = ap.slice(2,2);
+  splitted = ap.split(1000);
