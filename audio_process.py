@@ -3,6 +3,7 @@
 from os.path import splitext;
 import numpy as np;
 from pydub import AudioSegment;
+from scipy.io import wavfile;
 
 class AudioProcess(object):
   __opened = False;
@@ -29,7 +30,7 @@ class AudioProcess(object):
     self.__sample_width = audiofile.sample_width; # how many bytes for one sample
     self.__channels = audiofile.channels; # how many sound channels (whether it is a stereo audio)
     self.__frame_rate = audiofile.frame_rate; # how many samples per second
-    # 3) flag to represent whether a file has loaded
+    # 3) flag to represent whether a file has been loaded
     self.__opened = True;
   def normalize(self):
     if self.__opened == False:
@@ -43,6 +44,16 @@ class AudioProcess(object):
     data = self.normalize() if normalized else self.__data;
     segment_size = length * self.__frame_rate; # how many samples per slice
     return [data[x:x+segment_size,:] for x in np.arange(0, data.shape[0], segment_size)];
+  def remove_silent_part(self, output: str = None):
+    if output is None:
+      output = "generated.wav";
+    slices = self.split(1, True);
+    energies = np.array([np.mean(slice**2, axis = 0) for slice in slices]); # energies.shape = (slice num, channel)
+    thres = 0.5 * np.median(energies, axis = 0); # thres.shape = (channel,)
+    index_of_segments_to_keep = np.where(np.logical_and.reduce(energies > thres, axis = 1));
+    picked_slices = [slices[i] for i in index_of_segments_to_keep[0]];
+    data = np.concatenate(picked_slices, axis = 0); # data.shape = (sample number, channel)
+    wavfile.write(output, self.__frame_rate, data);
 
 if __name__ == "__main__":
 
@@ -53,3 +64,4 @@ if __name__ == "__main__":
   normalized = ap.normalize();
   sliced = ap.slice(2,2);
   splitted = ap.split(1000);
+  ap.remove_silent_part();
