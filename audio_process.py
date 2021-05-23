@@ -37,6 +37,8 @@ class AudioProcess(object):
       raise Exception('load an audio file first!');
     # return data in range [-1, 1]
     return self.__data / 2**(8*self.__sample_width - 1);
+  def denormalize(self, data):
+    return (data * 2**(8*self.__sample_width - 1)).astype(self.__data.dtype);
   def slice(self, start: int, length: int, normalized: bool = False):
     data = self.normalize() if normalized else self.__data;
     return data[start*self.__frame_rate:(start+length)*self.__frame_rate,:];
@@ -51,7 +53,7 @@ class AudioProcess(object):
     energies = np.array([np.mean(slice**2, axis = 0) for slice in slices]); # energies.shape = (slice num, channel)
     thres = 0.5 * np.median(energies, axis = 0); # thres.shape = (channel,)
     index_of_segments_to_keep = np.where(np.logical_and.reduce(energies > thres, axis = 1));
-    picked_slices = [slices[i] for i in index_of_segments_to_keep[0]];
+    picked_slices = [self.denormalize(slices[i]) for i in index_of_segments_to_keep[0]];
     data = np.concatenate(picked_slices, axis = 0); # data.shape = (sample number, channel)
     wavfile.write(output, self.__frame_rate, data);
 
