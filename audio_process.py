@@ -38,6 +38,8 @@ class AudioProcess(object):
     # return data in range [-1, 1]
     return self.__data / 2**(8*self.__sample_width - 1);
   def denormalize(self, data):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
     return (data * 2**(8*self.__sample_width - 1)).astype(self.__data.dtype);
   def slice(self, start: int, length: int, normalized: bool = False):
     data = self.normalize() if normalized else self.__data;
@@ -59,7 +61,7 @@ class AudioProcess(object):
 
 if __name__ == "__main__":
 
-  ap = AudioProcess('brahms_lullaby.mp3');
+  ap = AudioProcess('samples/talk.mp3');
   print(ap.sample_width);
   print(ap.channels);
   print(ap.frame_rate);

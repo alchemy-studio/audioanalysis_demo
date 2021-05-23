@@ -97,13 +97,13 @@ class FFMPEG(object):
 
 if __name__ == "__main__":
 
-  FFMPEG.show_attributes('brahms_lullaby.mp3');
-  FFMPEG.resample('brahms_lullaby.mp3');
-  FFMPEG.slice('brahms_lullaby.mp3', 10, 5);
-  FFMPEG.concat(['brahms_lullaby.mp3','brahms_lullaby.mp3']);
-  FFMPEG.split('brahms_lullaby.mp3',10);
-  FFMPEG.switch_channels('brahms_lullaby.mp3');
-  FFMPEG.split_channels('brahms_lullaby.mp3');
+  FFMPEG.show_attributes('samples/brahms_lullaby.mp3');
+  FFMPEG.resample('samples/brahms_lullaby.mp3');
+  FFMPEG.slice('samples/brahms_lullaby.mp3', 10, 5);
+  FFMPEG.concat(['samples/brahms_lullaby.mp3','samples/brahms_lullaby.mp3']);
+  FFMPEG.split('samples/brahms_lullaby.mp3',10);
+  FFMPEG.switch_channels('samples/brahms_lullaby.mp3');
+  FFMPEG.split_channels('samples/brahms_lullaby.mp3');
   FFMPEG.join_channels(['brahms_lullaby_left.flac','brahms_lullaby_right.flac']);
-  FFMPEG.mute_channel('brahms_lullaby.mp3', Channel.Left);
-  FFMPEG.volume_adjust('brahms_lullaby.mp3', 0.5);
+  FFMPEG.mute_channel('samples/brahms_lullaby.mp3', Channel.Left);
+  FFMPEG.volume_adjust('samples/brahms_lullaby.mp3', 0.5);
