@@ -4,6 +4,7 @@ from os.path import splitext;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
+from librosa.beat import beat_track;
 
 class AudioProcess(object):
   __opened = False;
@@ -58,6 +59,11 @@ class AudioProcess(object):
     picked_slices = [self.denormalize(slices[i]) for i in index_of_segments_to_keep[0]];
     data = np.concatenate(picked_slices, axis = 0); # data.shape = (sample number, channel)
     wavfile.write(output, self.__frame_rate, data);
+  def get_tempo(self,):
+    for i in range(self.__data.shape[1]):
+      tempo, beats = beat_track(self.__data[:,i].astype(np.float),  sr = self.__frame_rate, units="time");
+      beats -= 0.05;
+      
 
 if __name__ == "__main__":
 
@@ -69,3 +75,5 @@ if __name__ == "__main__":
   sliced = ap.slice(2,2);
   splitted = ap.split(1000);
   ap.remove_silent_part();
+  ap.load('samples/brahms_lullaby.mp3');
+  ap.get_tempo();
