@@ -60,10 +60,19 @@ class AudioProcess(object):
     data = np.concatenate(picked_slices, axis = 0); # data.shape = (sample number, channel)
     wavfile.write(output, self.__frame_rate, data);
   def get_tempo(self,):
+    tempo_channels = list();
     for i in range(self.__data.shape[1]):
-      tempo, beats = beat_track(self.__data[:,i].astype(np.float),  sr = self.__frame_rate, units="time");
+      tempo, beats = beat_track(self.__data[:,i].astype(np.float32),  sr = self.__frame_rate, units="time");
       beats -= 0.05;
-      
+      tempo_channel = np.zeros_like(self.__data[:,i]); # temp_channel.shape = (sample number)
+      for ib, b in enumerate(beats):
+        sample_periods = np.arange(0, 0.2, 1 / self.__frame_rate);
+        amp_mod = 0.2 / (np.sqrt(sample_periods) + 0.2) - 0.2; # amplitude decay
+        amp_mod[amp_mod < 0] = 0;
+        x = np.max(self.__data) * np.cos(2 * np.pi * sample_periods * 220) * amp_mod;
+        tempo_channel[int(self.__frame_rate * b): int(self.__frame_rate * b) + int(x.shape[0])] = x.astype(np.int16);
+      tempo_channels.append(tempo_channel);
+    return tempo_channels;
 
 if __name__ == "__main__":
 
