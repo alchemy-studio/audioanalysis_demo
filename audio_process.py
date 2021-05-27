@@ -67,8 +67,8 @@ class AudioProcess(object):
       tempo_channel = np.zeros_like(self.__data[:,i]); # temp_channel.shape = (sample number)
       for ib, b in enumerate(beats):
         sample_periods = np.arange(0, 0.2, 1 / self.__frame_rate);
-        amp_mod = 0.2 / (np.sqrt(sample_periods) + 0.2) - 0.2; # amplitude decay
-        amp_mod[amp_mod < 0] = 0;
+        amp_mod = 0.2 / (np.sqrt(sample_periods) + 0.2) - 0.2; # amplitude decay, range in [-0.2, 0.8]
+        amp_mod[amp_mod < 0] = 0; # filter sub-zero part, range in [0, 0.8]
         x = np.max(self.__data) * np.cos(2 * np.pi * sample_periods * 220) * amp_mod;
         tempo_channel[int(self.__frame_rate * b): int(self.__frame_rate * b) + int(x.shape[0])] = x.astype(np.int16);
       tempo_channels.append(tempo_channel);
