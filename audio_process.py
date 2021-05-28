@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from os.path import splitext;
+from typing import List;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
@@ -42,14 +43,45 @@ class AudioProcess(object):
     if self.__opened == False:
       raise Exception('load an audio file first!');
     return (data * 2**(8*self.__sample_width - 1)).astype(self.__data.dtype);
-  def slice(self, start: int, length: int, normalized: bool = False):
+  def slice(self, start: int, length: int, normalized: bool = False, output: str = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
     data = self.normalize() if normalized else self.__data;
-    return data[start*self.__frame_rate:(start+length)*self.__frame_rate,:];
-  def split(self, length: int, normalized: bool = False):
+    retval = data[start*self.__frame_rate:(start+length)*self.__frame_rate,:];
+    if output is not None:
+      assert splitext(output)[1] == '.wav';
+      wavfile.write(output, self.__frame_rate, retval);
+    return retval;
+  def split(self, length: int, normalized: bool = False, output: str = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
     data = self.normalize() if normalized else self.__data;
     segment_size = length * self.__frame_rate; # how many samples per slice
-    return [data[x:x+segment_size,:] for x in np.arange(0, data.shape[0], segment_size)];
+    retval = [data[x:x+segment_size,:] for x in np.arange(0, data.shape[0], segment_size)];
+    if output is not None:
+      assert splitext(output)[1] == '.wav';
+      wavfile.write(output, self.__frame_rate, retval);
+    return retval;
+  def split_channels(self, output: str = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
+    channels = np.split(self.__data, self.__channels, -1); # channels = list[sample number x 1]
+    if output is not None:
+      assert splitext(output)[1] == '.wav';
+      for i, channel in enumerate(channels):
+        wavfile.write(splitext(output)[0] + str(i) + splitext(output)[1], channel, channel);
+    return channels;
+  def join_channels(self, channels: List[np.array], output: str = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
+    retval = np.concatenate(channels, axis = -1); # retval.shape = (sample number, channels)
+    if output is not None:
+      assert splitext(output)[1] == '.wav';
+      wavfile.write(output, self.__frame_rate, retval);
+    return retval;
   def remove_silent_part(self, output: str = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
     if output is None:
       output = "generated.wav";
     slices = self.split(1, True);
@@ -60,18 +92,24 @@ class AudioProcess(object):
     data = np.concatenate(picked_slices, axis = 0); # data.shape = (sample number, channel)
     wavfile.write(output, self.__frame_rate, data);
   def get_tempo(self,):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
     tempo_channels = list();
+    # 1) create frames representing a beat which lasts for 0.2 second
+    samples = np.arange(0, 0.2, 1 / self.__frame_rate); # how many frames for a beat
+    amp_mod = 0.2 / (np.sqrt(samples) + 0.2) - 0.2; # amplitude decay, range in [-0.2, 0.8]
+    amp_mod[amp_mod < 0] = 0; # filter sub-zero part, range in [0, 0.8]
+    x = np.max(self.__data) * np.cos(2 * np.pi * samples * 220) * amp_mod; # generate samples with scaled amplitude
+    # 2) generate audio frames containing beats which is as long as the loaded audio
     for i in range(self.__data.shape[1]):
+      # detect beats for every single channel of the loaded audio
+      # NOTE: beats is a list of time (seconds) which are picked as beats for tempo
       tempo, beats = beat_track(self.__data[:,i].astype(np.float32),  sr = self.__frame_rate, units="time");
       beats -= 0.05;
       tempo_channel = np.zeros_like(self.__data[:,i]); # temp_channel.shape = (sample number)
       for ib, b in enumerate(beats):
-        sample_periods = np.arange(0, 0.2, 1 / self.__frame_rate);
-        amp_mod = 0.2 / (np.sqrt(sample_periods) + 0.2) - 0.2; # amplitude decay
-        amp_mod[amp_mod < 0] = 0;
-        x = np.max(self.__data) * np.cos(2 * np.pi * sample_periods * 220) * amp_mod;
         tempo_channel[int(self.__frame_rate * b): int(self.__frame_rate * b) + int(x.shape[0])] = x.astype(np.int16);
-      tempo_channels.append(tempo_channel);
+      tempo_channels.append(np.expand_dims(tempo_channel, axis = -1));
     return tempo_channels;
 
 if __name__ == "__main__":
@@ -85,4 +123,7 @@ if __name__ == "__main__":
   splitted = ap.split(1000);
   ap.remove_silent_part();
   ap.load('samples/brahms_lullaby.mp3');
-  ap.get_tempo();
+  channels = ap.split_channels();
+  tempo_channels = ap.get_tempo();
+  for i,(c,t) in enumerate(zip(channels, tempo_channels)):
+    ap.join_channels([c,t], str(i) + ".wav");
