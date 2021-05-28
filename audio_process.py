@@ -121,7 +121,7 @@ class AudioProcess(object):
     while True if count < 0 else i < count:
       block = stream.read(int(frame_rate * sample_window)); # get samples from microphone
       shorts = struct.unpack("%dh" % (len(block) / 2), block);
-      data = list(shorts);
+      data = np.array(list(short)).astype(np.int16);
       i += 1;
     
 
