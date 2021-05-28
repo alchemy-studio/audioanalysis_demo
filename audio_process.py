@@ -6,6 +6,8 @@ import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
 from librosa.beat import beat_track;
+import pyaudio;
+import struct;
 
 class AudioProcess(object):
   __opened = False;
@@ -111,6 +113,17 @@ class AudioProcess(object):
         tempo_channel[int(self.__frame_rate * b): int(self.__frame_rate * b) + int(x.shape[0])] = x.astype(np.int16);
       tempo_channels.append(np.expand_dims(tempo_channel, axis = -1));
     return tempo_channels;
+  def from_microphone(self, sample_window: float = 0.2, frame_rate: int = 8000, channels: int = 1, count: int = -1):
+    # sample_window: how long (second) each sample segment is
+    pa = pyaudio.PyAudio();
+    stream = pa.open(format = pyaudio.paInt16, channels = channels, rate = frame_rate, input = True, frames_per_buffer = int(frame_rate * sample_window));
+    i = 0;
+    while True if count < 0 else i < count:
+      block = stream.read(int(frame_rate * sample_window)); # get samples from microphone
+      shorts = struct.unpack("%dh" % (len(block) / 2), block);
+      data = list(shorts);
+      i += 1;
+    
 
 if __name__ == "__main__":
 
@@ -127,3 +140,4 @@ if __name__ == "__main__":
   tempo_channels = ap.get_tempo();
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
+  ap.from_microphone(count = 10);
