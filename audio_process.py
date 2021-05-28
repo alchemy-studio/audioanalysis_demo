@@ -124,6 +124,7 @@ class AudioProcess(object):
       shorts = struct.unpack("%dh" % (len(block) / 2), block);
       data = np.array(list(short)).astype(np.int16);
       i += 1;
+    # TODO: save audio from microphone to self
   def cqt(self, hop_length: int = 512, bins_per_octave: int = 12):
     # hop_length: how many samples are between two selected sample segments
     if self.__opened == False:
