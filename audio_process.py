@@ -5,6 +5,7 @@ from typing import List;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
+from librosa import note_to_hz, cqt, cqt_frequencies;
 from librosa.beat import beat_track;
 import pyaudio;
 import struct;
@@ -123,7 +124,19 @@ class AudioProcess(object):
       shorts = struct.unpack("%dh" % (len(block) / 2), block);
       data = np.array(list(short)).astype(np.int16);
       i += 1;
-    
+  def cqt(self, hop_length: int = 512, bins_per_octave: int = 12):
+    # hop_length: how many samples are between two selected sample segments
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
+    normalized = self.normalize();
+    channels = list();
+    for i in range(self.__channels):
+      normalized_channel = normalized[:,i];
+      channel_results = cqt(normalized_channel, self.__frame_rate, hop_length, fmin = note_to_hz('A0'), n_bins = 88, bins_per_octave = bins_per_octave); # results.shape = (84, hop number)
+      channels.append(channel_results);
+    results = np.stack(channels, axis = 0); # results.shape = (channel number, 84, hop number)
+    freqs = cqt_frequencies(88, fmin = note_to_hz('A0'), bins_per_octave = bins_per_octave);
+    return results, freqs;
 
 if __name__ == "__main__":
 
@@ -140,4 +153,8 @@ if __name__ == "__main__":
   tempo_channels = ap.get_tempo();
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
-  ap.from_microphone(count = 10);
+  #ap.from_microphone(count = 10);
+  results, freqs = ap.cqt();
+  print(results.shape);
+  print(freqs.shape);
+  print(freqs[0], freqs[-1]);
