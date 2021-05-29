@@ -5,10 +5,12 @@ from typing import List;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
-from librosa import note_to_hz, hz_to_note, cqt, cqt_frequencies;
+from librosa import note_to_hz, hz_to_note, cqt, cqt_frequencies, amplitude_to_db, display;
 from librosa.beat import beat_track;
 import pyaudio;
 import struct;
+import cv2;
+import matplotlib.pyplot as plt;
 
 class AudioProcess(object):
   __opened = False;
@@ -158,17 +160,41 @@ class AudioProcess(object):
       print("processing channel %d" % channel);
       channels.append(list());
       for i in range(len(beats)-1):
-        print('processing %d/%d' % (i, len(beats)));
+        print('processing %d/%d' % (i, len(beats)-1));
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
-        segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*3/4),:];
+        segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
         hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
-        spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (1, 88, hop number <= 2)
+        spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
         energy = np.abs(spectrum[0,:,0]); # energy.shape = (88)
         threshold = 10 * np.median(energy); # threshold.shape = ()
         detected_freqs = freqs[energy > threshold]; # detected_freqs.shape = (freq number)
         detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
+  def visualize(self, channel = 0, output = 'visualize.avi'):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
+    assert channel < self.__channels;
+    beat_channels = self.get_tempo(just_beats = True);
+    period = beat_channels[channel][1] - beat_channels[channel][0];
+    fps = 1/period;
+    writer = None;
+    for i in range(len(beat_channels[channel])-1):
+      print('processing %d/%d' % (i, len(beat_channels[channel])-1));
+      segment = self.__data[int(beat_channels[channel][i] * self.__frame_rate):int(beat_channels[channel][i+1]*self.__frame_rate),channel:channel+1];
+      hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
+      spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
+      CQT = amplitude_to_db(spectrum[0], ref = np.max);
+      fig = plt.figure(figsize = (12,8));
+      display.specshow(CQT, x_axis = 'time', y_axis = 'cqt_hz');
+      plt.colorbar(format = '%+2.0f dB');
+      plt.title('Constant-Q power spectrogram (Hz)');
+      fig.canvas.draw();
+      image = np.fromstring(fig.canvas.tostring_rgb(), dtype = np.uint8, sep='');
+      image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,));
+      if writer is None:
+        writer = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(*'XVID'), fps, fig.canvas.get_width_height()[::-1]);
+      writer.write(image);
 
 if __name__ == "__main__":
 
@@ -186,9 +212,11 @@ if __name__ == "__main__":
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
+  '''
   channels = ap.scale_recognition();
   with open('notes.txt','w') as f:
     for notes in channels[0]:
       line = ','.join(notes);
       f.write(line + "\n");
-
+  '''
+  ap.visualize();
