@@ -185,3 +185,8 @@ if __name__ == "__main__":
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
   channels = ap.scale_recognition();
+  with open('notes.txt','w') as f:
+    for notes in channels[0]:
+      line = ','.join(notes);
+      f.write(line + "\n");
+
