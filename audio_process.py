@@ -155,8 +155,10 @@ class AudioProcess(object):
     beat_channels = self.get_tempo(just_beats = True);
     channels = list();
     for channel, beats in enumerate(beat_channels):
+      print("processing channel %d" % channel);
       channels.append(list());
       for i in range(len(beats)):
+        print('processing %d/%d' % (i, len(beats)));
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
         segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*3/4),:];
         hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
