@@ -165,9 +165,8 @@ class AudioProcess(object):
         segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
         hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
         spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
-        energy = np.abs(spectrum[0,:,0]); # energy.shape = (88)
-        threshold = 10 * np.median(energy); # threshold.shape = ()
-        detected_freqs = freqs[energy > threshold]; # detected_freqs.shape = (freq number)
+        db = amplitude_to_db(spectrum[0], ref = np.max); # db.shape = (88, hop number <= 2)
+        detected_freqs = freqs[db[:,0]>=0.]; # detected_freqs.shape = (freq number)
         detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
@@ -192,6 +191,10 @@ class AudioProcess(object):
       fig.canvas.draw();
       image = np.fromstring(fig.canvas.tostring_rgb(), dtype = np.uint8, sep='');
       image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,));
+      #'''
+      cv2.imshow('', image);
+      cv2.waitKey(int(period));
+      #'''
       if writer is None:
         writer = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(*'XVID'), fps, fig.canvas.get_width_height()[::-1]);
       writer.write(image);
@@ -213,11 +216,9 @@ if __name__ == "__main__":
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
-  '''
   channels = ap.scale_recognition();
   with open('notes.txt','w') as f:
     for notes in channels[0]:
       line = ','.join(notes);
       f.write(line + "\n");
-  '''
-  ap.visualize();
+  #ap.visualize();
