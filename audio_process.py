@@ -153,9 +153,9 @@ class AudioProcess(object):
     if self.__opened == False:
       raise Exception('load an audio file first!');
     beat_channels = self.get_tempo(just_beats = True);
-    hop_lengths = list();
-    start_frames = list();
+    channels = list();
     for channel, beats in enumerate(beat_channels):
+      channels.append(list());
       for i in range(len(beats)):
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
         segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*3/4),:];
@@ -165,7 +165,8 @@ class AudioProcess(object):
         threshold = 10 * np.median(energy); # threshold.shape = ()
         detected_freqs = freqs[energy > threshold]; # detected_freqs.shape = (freq number)
         detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
-        print(detected_notes)
+        channels[-1].append(detected_notes);
+    return channels;
 
 if __name__ == "__main__":
 
@@ -183,4 +184,4 @@ if __name__ == "__main__":
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
-  ap.scale_recognition();
+  channels = ap.scale_recognition();
