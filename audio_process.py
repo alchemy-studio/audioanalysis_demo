@@ -162,7 +162,7 @@ class AudioProcess(object):
       for i in range(len(beats)-1):
         print('processing %d/%d' % (i, len(beats)-1));
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
-        segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
+        #segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
         hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
         spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
         db = amplitude_to_db(spectrum[0], ref = np.max); # db.shape = (88, hop number <= 2)
