@@ -156,14 +156,10 @@ class AudioProcess(object):
     hop_lengths = list();
     start_frames = list();
     for channel, beats in enumerate(beat_channels):
-      hop_length = int(np.mean(beats[1:] - beats[:-1]) * self.__frame_rate);
-      hop_lengths.append(hop_length);
-      start_frame = int(beats[0] * self.__frame_rate - hop_length / 2) if beats[0] * self.__frame_rate - hop_length / 2 > 0 else int(beats[0] * self.__frame_rate + hop_length / 2);
-      start_frames.append(start_frame);
-    hop_lengths = [np.mean(hop_lengths).astype(np.int32)] * self.__channels;
-    start_frame = np.mean(start_frames).astype(np.int32);
-    data = np.concatenate([self.__data[start_frame:,:], self.__data[:start_frame,:]], axis = 0);
-    spectrum, freqs = self.cqt(data, hop_lengths);
+      for i in range(len(beats) - 1):
+        segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1];
+        hop_length = 2 ** np.floor(np.log2(len(segment)));
+        spectrum, freqs = self.cqt(segment, [hop_length]);
 
 if __name__ == "__main__":
 
