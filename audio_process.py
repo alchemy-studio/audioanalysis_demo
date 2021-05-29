@@ -157,7 +157,7 @@ class AudioProcess(object):
     for channel, beats in enumerate(beat_channels):
       print("processing channel %d" % channel);
       channels.append(list());
-      for i in range(len(beats)):
+      for i in range(len(beats)-1):
         print('processing %d/%d' % (i, len(beats)));
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
         segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*3/4),:];
