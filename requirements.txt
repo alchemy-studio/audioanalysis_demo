@@ -2,3 +2,4 @@ numpy
 pydub
 librosa
 pyAudioAnalysis
+matplotlib
