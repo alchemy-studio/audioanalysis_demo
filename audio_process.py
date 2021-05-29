@@ -195,6 +195,7 @@ class AudioProcess(object):
       if writer is None:
         writer = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(*'XVID'), fps, fig.canvas.get_width_height()[::-1]);
       writer.write(image);
+    writer.release();
 
 if __name__ == "__main__":
 
