@@ -5,7 +5,7 @@ from typing import List;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
-from librosa import note_to_hz, cqt, cqt_frequencies;
+from librosa import note_to_hz, hz_to_note, cqt, cqt_frequencies;
 from librosa.beat import beat_track;
 import pyaudio;
 import struct;
@@ -139,10 +139,10 @@ class AudioProcess(object):
       raise Exception('load an audio file first!');
     if hop_lengths is None:
       hop_lengths = [512] * self.__channels;
-    assert len(hop_lengths) == self.__channels;
+    assert len(hop_lengths) == self.__channels if data is None else len(hop_lengths) == data.shape[-1];
     normalized = self.normalize(data);
     channels = list();
-    for i in range(self.__channels):
+    for i in range(normalized.shape[-1]):
       normalized_channel = normalized[:,i];
       channel_results = cqt(normalized_channel, self.__frame_rate, hop_lengths[i], fmin = note_to_hz('A0'), n_bins = 88, bins_per_octave = bins_per_octave); # results.shape = (84, hop number)
       channels.append(channel_results);
@@ -156,10 +156,16 @@ class AudioProcess(object):
     hop_lengths = list();
     start_frames = list();
     for channel, beats in enumerate(beat_channels):
-      for i in range(len(beats) - 1):
-        segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1];
-        hop_length = 2 ** np.floor(np.log2(len(segment)));
-        spectrum, freqs = self.cqt(segment, [hop_length]);
+      for i in range(len(beats)):
+        segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
+        segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*3/4),:];
+        hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
+        spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (1, 88, hop number <= 2)
+        energy = np.abs(spectrum[0,:,0]); # energy.shape = (88)
+        threshold = 10 * np.median(energy); # threshold.shape = ()
+        detected_freqs = freqs[energy > threshold]; # detected_freqs.shape = (freq number)
+        detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
+        print(detected_notes)
 
 if __name__ == "__main__":
 
