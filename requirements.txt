@@ -4,3 +4,4 @@ librosa
 pyAudioAnalysis
 matplotlib
 pyaudio
+opencv-python
