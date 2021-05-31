@@ -140,7 +140,7 @@ class AudioProcess(object):
     if self.__opened == False:
       raise Exception('load an audio file first!');
     if hop_lengths is None:
-      hop_lengths = [512] * self.__channels;
+      hop_lengths = [512] * (self.__channels if data is None else data.shape[-1]);
     assert len(hop_lengths) == self.__channels if data is None else len(hop_lengths) == data.shape[-1];
     normalized = self.normalize(data);
     channels = list();
@@ -216,9 +216,11 @@ if __name__ == "__main__":
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
+  '''
   channels = ap.scale_recognition();
   with open('notes.txt','w') as f:
     for notes in channels[0]:
       line = ','.join(notes);
       f.write(line + "\n");
-  #ap.visualize();
+  '''
+  ap.visualize();
