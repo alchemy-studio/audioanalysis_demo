@@ -3,3 +3,4 @@ pydub
 librosa
 pyAudioAnalysis
 matplotlib
+pyaudio
