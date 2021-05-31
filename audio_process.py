@@ -182,7 +182,7 @@ class AudioProcess(object):
       print('processing %d/%d' % (i, len(beat_channels[channel])-1));
       segment = self.__data[int(beat_channels[channel][i] * self.__frame_rate):int(beat_channels[channel][i+1]*self.__frame_rate),channel:channel+1];
       hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
-      spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
+      spectrum, freqs = self.cqt(segment); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
       CQT = amplitude_to_db(spectrum[0], ref = np.max);
       fig = plt.figure(figsize = (12,8));
       display.specshow(CQT, x_axis = 'time', y_axis = 'cqt_hz');
