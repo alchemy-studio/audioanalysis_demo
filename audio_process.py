@@ -11,6 +11,8 @@ import pyaudio;
 import struct;
 import cv2;
 import matplotlib.pyplot as plt;
+import matplotlib
+matplotlib.use('TkAgg')
 
 class AudioProcess(object):
   __opened = False;
