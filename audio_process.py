@@ -248,7 +248,7 @@ class AudioProcess(object):
         spectrum[0:3] = np.zeros_like(spectrum[0:3]);
         rms = np.sqrt(np.mean(segment ** 2));
         detected_freqs = self.pitch_spectral_hps(spectrum, freqs, self.__frame_rate, rms);
-        detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
+        detected_notes = [hz_to_note(freq[0]) for freq in detected_freqs if note_to_hz('A0') <= freq[0] <= note_to_hz('C8')]; # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
   def visualize(self, channel = 0, output = 'visualize.avi'):
