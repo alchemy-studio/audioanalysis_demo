@@ -5,7 +5,7 @@ from typing import List;
 import numpy as np;
 from pydub import AudioSegment;
 from scipy.io import wavfile;
-from librosa import note_to_hz, hz_to_note, cqt, cqt_frequencies, amplitude_to_db, display;
+from librosa import note_to_hz, hz_to_note, cqt, cqt_frequencies, stft, fft_frequencies, amplitude_to_db, display;
 from librosa.beat import beat_track;
 import pyaudio;
 import struct;
@@ -153,6 +153,82 @@ class AudioProcess(object):
     spectrum = np.stack(channels, axis = 0); # spectrum.shape = (channel number, 88, hop number)
     freqs = cqt_frequencies(88, fmin = note_to_hz('A0'), bins_per_octave = bins_per_octave);
     return spectrum, freqs;
+  def stft(self, data: np.array = None, hop_lengths: List[int] = None):
+    if self.__opened == False:
+      raise Exception('load an audio file first!');
+    if hop_lengths is None:
+      hop_lengths = [512] * (self.__channels if data is None else data.shape[-1]);
+    assert len(hop_lengths) == self.__channels if data is None else len(hop_lengths) == data.shape[-1];
+    normalized = self.normalize(data);
+    channels = list();
+    for i in range(normalized.shape[-1]):
+      normalized_channel = normalized[:,i];
+      channel_results = stft(normalized_channel, 22050, hop_lengths[i]);
+      channels.append(channel_results); # channel_results.shape = (1 + 22050/2, hop number)
+    spectrum = np.stack(channels, axis = 0); # spectrum.shape = (channel number, 1 + 22050/2, hop number)
+    freqs = fft_frequencies(self.__frame_rate, 22050); # freqs.shape = (1 + 22050/2)
+    return spectrum, freqs;
+  def note_threshold_scaled_by_RMS(self, buffer_rms):
+    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms
+    return note_threshold
+  def pitch_spectral_hps(self, X, freq_buckets, f_s, buffer_rms):
+
+    """
+    NOTE: This function is from the book Audio Content Analysis repository
+    https://www.audiocontentanalysis.org/code/pitch-tracking/hps-2/
+    The license is MIT Open Source License.
+    And I have modified it. Go to the link to see the original.
+    computes the maximum of the Harmonic Product Spectrum
+    Args:
+        X: spectrogram (dimension FFTLength X Observations)
+        f_s: sample rate of audio data
+    Returns:
+        f HPS maximum location (in Hz)
+    """
+
+    # initialize
+    iOrder = 4
+    f_min = 65.41   # C2      300
+    # f = np.zeros(X.shape[1])
+    f = np.zeros(len(X))
+
+    iLen = int((X.shape[0] - 1) / iOrder)
+    afHps = X[np.arange(0, iLen)]
+    k_min = int(round(f_min / f_s * 2 * (X.shape[0] - 1)))
+
+    # compute the HPS
+    for j in range(1, iOrder):
+        X_d = X[::(j + 1)]
+        afHps *= X_d[np.arange(0, iLen)]
+
+    ## Uncomment to show the original algorithm for a single frequency or note. 
+    # f = np.argmax(afHps[np.arange(k_min, afHps.shape[0])], axis=0)
+    ## find max index and convert to Hz
+    # freq_out = (f + k_min) / (X.shape[0] - 1) * f_s / 2
+
+    note_threshold = self.note_threshold_scaled_by_RMS(buffer_rms)
+
+    all_freq = np.argwhere(afHps[np.arange(k_min, afHps.shape[0])] > note_threshold)
+    # find max index and convert to Hz
+    freqs_out = (all_freq + k_min) / (X.shape[0] - 1) * f_s / 2
+
+    
+    x = afHps[np.arange(k_min, afHps.shape[0])]
+    freq_indexes_out = np.where( x > note_threshold)
+    freq_values_out = x[freq_indexes_out]
+
+    # print("\n##### x: " + str(x))
+    # print("\n##### freq_values_out: " + str(freq_values_out))
+
+    max_value = np.max(afHps[np.arange(k_min, afHps.shape[0])])
+    max_index = np.argmax(afHps[np.arange(k_min, afHps.shape[0])])
+
+    # Turns 2 level list into a one level list.
+    freqs_out_tmp = []
+    for freq, value  in zip(freqs_out, freq_values_out):
+        freqs_out_tmp.append((freq[0], value))
+    
+    return freqs_out_tmp
   def scale_recognition(self,):
     if self.__opened == False:
       raise Exception('load an audio file first!');
@@ -166,9 +242,12 @@ class AudioProcess(object):
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
         #segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
         hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
-        spectrum, freqs = self.cqt(segment, [hop_length]); # spectrum.shape = (channel number = 1, 88, hop number <= 2)
-        db = amplitude_to_db(spectrum[0], ref = np.max); # db.shape = (88, hop number <= 2)
-        detected_freqs = freqs[db[:,0]>=0.]; # detected_freqs.shape = (freq number)
+        spectrum, freqs = self.stft(segment, [hop_length]); # spectrum.shape = (channel_number = 1, 1 + 22050/2, hop number <= 2)
+        spectrum = np.abs(spectrum[0,:,0]); # spectrum.shape = (1 + 22050/2)
+        # remove dc offset
+        spectrum[0:3] = np.zeros_like(spectrum[0:3]);
+        rms = np.sqrt(np.mean(segment ** 2));
+        detected_freqs = self.pitch_spectral_hps(spectrum, freqs, self.__frame_rate, rms);
         detected_notes = [hz_to_note(freq) for freq in detected_freqs]; # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
@@ -218,11 +297,11 @@ if __name__ == "__main__":
   for i,(c,t) in enumerate(zip(channels, tempo_channels)):
     ap.join_channels([c,t], str(i) + ".wav");
   #ap.from_microphone(count = 10);
-  '''
+  
   channels = ap.scale_recognition();
   with open('notes.txt','w') as f:
     for notes in channels[0]:
       line = ','.join(notes);
       f.write(line + "\n");
-  '''
-  ap.visualize();
+  
+  #ap.visualize();
