@@ -182,7 +182,7 @@ class AudioProcess(object):
     for i in range(1, order):
       hps *= fft[(concern_indices + 1)*(i+1)-1];
     threshold = 1000.0 * (4/0.090) * buffer_rms;
-    filtered_indices = np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
+    filtered_indices = min_index + np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
     filtered_freqs = (filtered_indices + 1) * f_s / N;
     filtered_amp = fft[filtered_indices];
     return [(freq, value) for (freq, value) in zip(filtered_freqs,filtered_amp)];
