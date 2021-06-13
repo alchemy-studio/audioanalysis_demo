@@ -172,7 +172,7 @@ class AudioProcess(object):
     # fft.shape = (N/2+1), in which N is the fft window size
     # in fft array:
     # [0:amplitude(f_s/N), 1:amplitude(2*f_s/N), ..., N/2:applitude((N/2+1)*f_s/N)]
-    order = 4;
+    order = 3;
     f_min = 27.5; # frequency of A_0
     N = (fft.shape[0] - 1) * 2; # fft window size
     f_delta = f_s / N; # frequency increment step
@@ -181,7 +181,7 @@ class AudioProcess(object):
     hps = fft[concern_indices]; # get amplitudes of concerned frequencies
     for i in range(1, order):
       hps *= fft[(concern_indices + 1)*(i+1)-1];
-    threshold = 1000.0 * (4/0.090) * buffer_rms;
+    threshold = 1000.0 * (order/0.090) * buffer_rms;
     filtered_indices = min_index + np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
     filtered_freqs = (filtered_indices + 1) * f_s / N;
     filtered_amp = fft[filtered_indices];
@@ -204,7 +204,7 @@ class AudioProcess(object):
         print('processing %d/%d' % (i, len(beats)-1));
         segment = self.__data[int(beats[i]*self.__frame_rate):int(beats[i+1]*self.__frame_rate),channel:channel+1]; # segment.shape = (sample number, channel number = 1)
         #segment = segment[int(segment.shape[0]/4):int(segment.shape[0]*4/4),:];
-        hop_length = int(2 ** np.floor(np.log2(segment.shape[0])));
+        hop_length = segment.shape[0];
         spectrum, freqs = self.stft(segment, [hop_length]); # spectrum.shape = (channel_number = 1, 1 + 22050/2, hop number <= 2)
         spectrum = np.abs(spectrum[0,:,0]); # spectrum.shape = (1 + 22050/2)
         # remove dc offset
