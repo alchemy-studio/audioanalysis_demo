@@ -168,67 +168,24 @@ class AudioProcess(object):
     spectrum = np.stack(channels, axis = 0); # spectrum.shape = (channel number, 1 + 22050/2, hop number)
     freqs = fft_frequencies(self.__frame_rate, 22050); # freqs.shape = (1 + 22050/2)
     return spectrum, freqs;
-  def note_threshold_scaled_by_RMS(self, buffer_rms):
-    note_threshold = 1000.0 * (4 / 0.090) * buffer_rms
-    return note_threshold
-  def pitch_spectral_hps(self, X, freq_buckets, f_s, buffer_rms):
-
-    """
-    NOTE: This function is from the book Audio Content Analysis repository
-    https://www.audiocontentanalysis.org/code/pitch-tracking/hps-2/
-    The license is MIT Open Source License.
-    And I have modified it. Go to the link to see the original.
-    computes the maximum of the Harmonic Product Spectrum
-    Args:
-        X: spectrogram (dimension FFTLength X Observations)
-        f_s: sample rate of audio data
-    Returns:
-        f HPS maximum location (in Hz)
-    """
-
-    # initialize
-    iOrder = 4
-    f_min = 65.41   # C2      300
-    # f = np.zeros(X.shape[1])
-    f = np.zeros(len(X))
-
-    iLen = int((X.shape[0] - 1) / iOrder)
-    afHps = X[np.arange(0, iLen)]
-    k_min = int(round(f_min / f_s * 2 * (X.shape[0] - 1)))
-
-    # compute the HPS
-    for j in range(1, iOrder):
-        X_d = X[::(j + 1)]
-        afHps *= X_d[np.arange(0, iLen)]
-
-    ## Uncomment to show the original algorithm for a single frequency or note. 
-    # f = np.argmax(afHps[np.arange(k_min, afHps.shape[0])], axis=0)
-    ## find max index and convert to Hz
-    # freq_out = (f + k_min) / (X.shape[0] - 1) * f_s / 2
-
-    note_threshold = self.note_threshold_scaled_by_RMS(buffer_rms)
-
-    all_freq = np.argwhere(afHps[np.arange(k_min, afHps.shape[0])] > note_threshold)
-    # find max index and convert to Hz
-    freqs_out = (all_freq + k_min) / (X.shape[0] - 1) * f_s / 2
-
-    
-    x = afHps[np.arange(k_min, afHps.shape[0])]
-    freq_indexes_out = np.where( x > note_threshold)
-    freq_values_out = x[freq_indexes_out]
-
-    # print("\n##### x: " + str(x))
-    # print("\n##### freq_values_out: " + str(freq_values_out))
-
-    max_value = np.max(afHps[np.arange(k_min, afHps.shape[0])])
-    max_index = np.argmax(afHps[np.arange(k_min, afHps.shape[0])])
-
-    # Turns 2 level list into a one level list.
-    freqs_out_tmp = []
-    for freq, value  in zip(freqs_out, freq_values_out):
-        freqs_out_tmp.append((freq[0], value))
-    
-    return freqs_out_tmp
+  def pitch_spectral_hps(self, fft, f_s, buffer_rms):
+    # fft.shape = (N/2+1), in which N is the fft window size
+    # in fft array:
+    # [0:amplitude(f_s/N), 1:amplitude(2*f_s/N), ..., N/2:applitude((N/2+1)*f_s/N)]
+    order = 4;
+    f_min = 27.5; # frequency of A_0
+    N = (fft.shape[0] - 1) * 2; # fft window size
+    f_delta = f_s / N; # frequency increment step
+    min_index = round(f_min / f_delta - 1); # index of the min frequency concerned in the fft result array
+    concern_indices = np.arange(0, (fft.shape[0] - 1) // order); # concern_indices.shape = (N/2/order,)
+    hps = fft[concern_indices]; # get amplitudes of concerned frequencies
+    for i in range(1, order):
+      hps *= fft[(concern_indices + 1)*(i+1)-1];
+    threshold = 1000.0 * (4/0.090) * buffer_rms;
+    filtered_indices = np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
+    filtered_freqs = (filtered_indices + 1) * f_s / N;
+    filtered_amp = fft[filtered_indices];
+    return [(freq, value) for (freq, value) in zip(filtered_freqs,filtered_amp)];
   def scale_recognition(self,):
     if self.__opened == False:
       raise Exception('load an audio file first!');
@@ -247,7 +204,7 @@ class AudioProcess(object):
         # remove dc offset
         spectrum[0:3] = np.zeros_like(spectrum[0:3]);
         rms = np.sqrt(np.mean(segment ** 2));
-        detected_freqs = self.pitch_spectral_hps(spectrum, freqs, self.__frame_rate, rms);
+        detected_freqs = self.pitch_spectral_hps(spectrum, self.__frame_rate, rms);
         detected_notes = [hz_to_note(freq[0]) for freq in detected_freqs if note_to_hz('A0') <= freq[0] <= note_to_hz('C8')]; # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
