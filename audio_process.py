@@ -185,7 +185,13 @@ class AudioProcess(object):
     filtered_indices = min_index + np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
     filtered_freqs = (filtered_indices + 1) * f_s / N;
     filtered_amp = fft[filtered_indices];
-    return [(freq, value) for (freq, value) in zip(filtered_freqs,filtered_amp)];
+    detected_notes = dict();
+    for (freq, value) in zip(filtered_freqs, filtered_amp):
+      if hz_to_note(freq) not in detected_notes:
+        detected_notes[hz_to_note(freq)] = value;
+      else:
+        detected_notes[hz_to_note(freq)] += value;
+    return detected_notes;
   def scale_recognition(self,):
     if self.__opened == False:
       raise Exception('load an audio file first!');
@@ -205,7 +211,7 @@ class AudioProcess(object):
         spectrum[0:3] = np.zeros_like(spectrum[0:3]);
         rms = np.sqrt(np.mean(segment ** 2));
         detected_freqs = self.pitch_spectral_hps(spectrum, self.__frame_rate, rms);
-        detected_notes = [hz_to_note(freq[0]) for freq in detected_freqs if note_to_hz('A0') <= freq[0] <= note_to_hz('C8')]; # detected_notes.shape = (note number)
+        detected_notes = detected_freqs.keys(); # detected_notes.shape = (note number)
         channels[-1].append(detected_notes);
     return channels;
   def visualize(self, channel = 0, output = 'visualize.avi'):
