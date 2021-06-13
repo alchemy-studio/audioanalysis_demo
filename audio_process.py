@@ -177,7 +177,7 @@ class AudioProcess(object):
     N = (fft.shape[0] - 1) * 2; # fft window size
     f_delta = f_s / N; # frequency increment step
     min_index = round(f_min / f_delta - 1); # index of the min frequency concerned in the fft result array
-    concern_indices = np.arange(0, (fft.shape[0] - 1) // order); # concern_indices.shape = (N/2/order,)
+    concern_indices = np.arange(0, N // 2 // order); # concern_indices.shape = (N/2/order,)
     hps = fft[concern_indices]; # get amplitudes of concerned frequencies
     for i in range(1, order):
       hps *= fft[(concern_indices + 1)*(i+1)-1];
