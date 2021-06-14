@@ -188,8 +188,10 @@ class AudioProcess(object):
     plt.title('hps');
     plt.xlabel('frequency');
     plt.ylabel('hps');
-    plt.axhline(np.median(hps), 0, 1, color = 'green', label = 'median of hps');
-    plt.axhline(np.mean(hps), 0, 1, color = 'yellow', label = 'mean of hps');
+    max_index = round(4186.009 / f_delta - 1);
+    plt.axhline(np.median(hps[min_index:max_index+1]), 0, 1, color = 'green', label = 'median of hps');
+    plt.axhline(np.mean(hps[min_index:max_index+1]), 0, 1, color = 'yellow', label = 'mean of hps');
+    plt.axhline(order * buffer_rms, 0, 1, color = 'purple', label = 'rms');
     plt.show();
     #'''
     threshold = 2.5 * order * buffer_rms;
