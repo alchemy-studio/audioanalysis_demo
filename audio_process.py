@@ -172,16 +172,27 @@ class AudioProcess(object):
     # fft.shape = (N/2+1), in which N is the fft window size
     # in fft array:
     # [0:amplitude(f_s/N), 1:amplitude(2*f_s/N), ..., N/2:applitude((N/2+1)*f_s/N)]
-    order = 3;
+    order = 4;
     f_min = 27.5; # frequency of A_0
     N = (fft.shape[0] - 1) * 2; # fft window size
     f_delta = f_s / N; # frequency increment step
     min_index = round(f_min / f_delta - 1); # index of the min frequency concerned in the fft result array
     concern_indices = np.arange(0, N // 2 // order); # concern_indices.shape = (N/2/order,)
-    hps = fft[concern_indices]; # get amplitudes of concerned frequencies
+    weights = [0.5, 0.3, 0.1, 0.1];
+    hps = weights[0] * fft[concern_indices]; # get amplitudes of concerned frequencies
     for i in range(1, order):
-      hps *= fft[(concern_indices + 1)*(i+1)-1];
-    threshold = 1000.0 * (order/0.090) * buffer_rms;
+      hps += weights[i] * fft[(concern_indices + 1)*(i+1)-1];
+    #'''
+    freqs = [i * f_s / N for i in range(hps.shape[0])];
+    plt.plot(freqs, hps);
+    plt.title('hps');
+    plt.xlabel('frequency');
+    plt.ylabel('hps');
+    plt.axhline(np.median(hps), 0, 1, color = 'green', label = 'median of hps');
+    plt.axhline(np.mean(hps), 0, 1, color = 'yellow', label = 'mean of hps');
+    plt.show();
+    #'''
+    threshold = 2.5 * order * buffer_rms;
     filtered_indices = min_index + np.where(hps[np.arange(min_index, hps.shape[0])] > threshold)[0];
     filtered_freqs = (filtered_indices + 1) * f_s / N;
     filtered_amp = fft[filtered_indices];
